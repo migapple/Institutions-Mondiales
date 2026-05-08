@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Institutions Mondiales</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --ink: #1a1209;
+  --gold: #c9a84c;
+  --gold2: #e8c96a;
+  --parch: #f5edd8;
+  --parch2: #ede0c4;
+  --cream: #faf6ec;
+  --tab-h: 56px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:#1a1209;}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:#1a1209;overflow:hidden;}
+
+/* HEADER */
+.header{
+  padding-top:calc(14px + env(safe-area-inset-top));
+  padding-bottom:10px;
+  padding-left:16px;padding-right:16px;
+  background:#1a1209;
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(201,168,76,0.3);
+}
+.header-title{
+  font-family:Georgia,serif;
+  font-size:17px;font-weight:bold;
+  color:var(--gold);
+  letter-spacing:0.5px;
+}
+.header-sub{font-size:11px;color:rgba(201,168,76,0.6);font-family:Georgia,serif;margin-top:1px;}
+.lang-btn{
+  background:none;border:1px solid rgba(201,168,76,0.4);
+  border-radius:6px;padding:4px 8px;
+  font-size:18px;cursor:pointer;color:var(--gold);
+}
+
+/* TABS */
+.tabs{
+  display:flex;background:#1a1209;
+  border-bottom:1px solid rgba(201,168,76,0.25);
+  flex-shrink:0;
+}
+.tab{
+  flex:1;padding:10px 0;
+  text-align:center;font-size:11px;
+  font-family:Georgia,serif;
+  color:rgba(201,168,76,0.5);
+  cursor:pointer;border:none;background:none;
+  letter-spacing:0.3px;display:flex;flex-direction:column;align-items:center;
+}
+.tab.active{color:var(--gold);border-bottom:2px solid var(--gold);}
+.tab-icon{font-size:18px;display:block;margin-bottom:2px;}
+
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+
+/* MAP */
+#map-view{flex:1;display:flex;flex-direction:column;}
+#map{flex:1;}
+.leaflet-popup-content-wrapper{
+  background:#1a1209 !important;border:1px solid var(--gold) !important;
+  border-radius:8px !important;color:var(--gold) !important;
+}
+.leaflet-popup-tip{background:#1a1209 !important;}
+.leaflet-popup-content{margin:8px 12px !important;font-family:Georgia,serif;}
+.popup-name{font-weight:bold;font-size:13px;color:var(--gold);}
+.popup-city{font-size:11px;color:rgba(201,168,76,0.7);margin-top:2px;}
+.popup-btn{
+  margin-top:6px;background:var(--gold);color:#1a1209;
+  border:none;border-radius:5px;padding:4px 10px;
+  font-size:11px;font-family:Georgia,serif;cursor:pointer;font-weight:bold;
+}
+
+/* LIST */
+#list-view{flex:1;overflow-y:auto;padding-bottom:calc(12px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;}
+.inst-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 14px;border-bottom:1px solid rgba(201,168,76,0.12);
+  cursor:pointer;
+}
+.inst-item:active{background:rgba(201,168,76,0.06);}
+.inst-logo{
+  width:48px;height:48px;border-radius:10px;
+  object-fit:cover;background:rgba(201,168,76,0.1);
+  flex-shrink:0;border:1px solid rgba(201,168,76,0.2);
+}
+.inst-logo-placeholder{
+  width:48px;height:48px;border-radius:10px;
+  background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+}
+.inst-info{flex:1;min-width:0;}
+.inst-abbr{font-size:13px;font-weight:bold;color:var(--gold);font-family:Georgia,serif;}
+.inst-name{font-size:11px;color:rgba(201,168,76,0.7);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inst-city{font-size:10px;color:rgba(201,168,76,0.45);margin-top:1px;}
+.inst-arrow{color:rgba(201,168,76,0.3);font-size:14px;}
+
+/* DETAIL PANEL */
+#detail-panel{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:#1a1209;z-index:200;
+  transform:translateX(100%);transition:transform 0.3s ease;
+  display:flex;flex-direction:column;
+}
+#detail-panel.open{transform:translateX(0);}
+.detail-header{
+  padding-top:calc(14px + env(safe-area-inset-top));
+  padding-bottom:10px;padding-left:16px;padding-right:16px;
+  background:#1a1209;flex-shrink:0;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(201,168,76,0.25);
+}
+.back-btn{
+  background:none;border:none;color:var(--gold);
+  font-size:22px;cursor:pointer;padding:0;
+}
+.detail-header-title{font-family:Georgia,serif;font-size:15px;color:var(--gold);flex:1;}
+.detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+
+.detail-hero-wrap{
+  width:100%;
+  border-bottom:1px solid rgba(201,168,76,0.2);
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(201,168,76,0.04);
+  padding:10px 0;
+}
+.detail-hero{
+  max-width:100%;max-height:240px;
+  width:auto;height:auto;
+  display:block;
+  border-radius:4px;
+}
+.detail-hero-placeholder{
+  width:100%;height:200px;background:rgba(201,168,76,0.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:60px;border-bottom:1px solid rgba(201,168,76,0.2);
+}
+.detail-section{padding:16px;}
+.detail-abbr{
+  font-family:Georgia,serif;font-size:28px;font-weight:bold;
+  color:var(--gold);margin-bottom:4px;
+}
+.detail-fullname{font-family:Georgia,serif;font-size:14px;color:rgba(201,168,76,0.7);margin-bottom:12px;}
+.detail-meta{
+  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;
+}
+.meta-tag{
+  background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);
+  border-radius:12px;padding:3px 10px;font-size:11px;color:var(--gold);
+  font-family:Georgia,serif;
+}
+.detail-desc{
+  font-family:Georgia,serif;font-size:14px;
+  color:var(--parch);line-height:1.65;
+}
+.detail-divider{
+  height:1px;background:rgba(201,168,76,0.15);
+  margin:14px 0;
+}
+.detail-label{
+  font-size:10px;color:rgba(201,168,76,0.5);
+  font-family:Georgia,serif;text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:6px;
+}
+
+/* QUIZ */
+#quiz-view{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;}
+.quiz-header{
+  text-align:center;margin-bottom:20px;
+  font-family:Georgia,serif;
+}
+.quiz-score-label{font-size:11px;color:rgba(201,168,76,0.5);margin-bottom:4px;}
+.quiz-score{font-size:28px;font-weight:bold;color:var(--gold);}
+.quiz-progress{
+  height:4px;background:rgba(201,168,76,0.15);border-radius:2px;margin-bottom:20px;
+}
+.quiz-progress-bar{height:4px;background:var(--gold);border-radius:2px;transition:width 0.4s;}
+.quiz-card{
+  background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);
+  border-radius:12px;padding:18px;margin-bottom:14px;
+}
+.quiz-q{font-family:Georgia,serif;font-size:15px;color:var(--parch);margin-bottom:14px;line-height:1.5;}
+.quiz-opt{
+  display:block;width:100%;text-align:left;
+  background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.2);
+  border-radius:8px;padding:10px 14px;margin-bottom:8px;
+  font-family:Georgia,serif;font-size:13px;color:var(--parch2);
+  cursor:pointer;transition:background 0.15s,border-color 0.15s;
+}
+.quiz-opt:active{background:rgba(201,168,76,0.15);}
+.quiz-opt.correct{background:rgba(80,160,80,0.2)!important;border-color:#5a9 !important;color:#8ec!important;}
+.quiz-opt.wrong{background:rgba(160,60,60,0.2)!important;border-color:#a55 !important;color:#e99!important;}
+.quiz-feedback{
+  margin-top:10px;font-family:Georgia,serif;font-size:13px;
+  color:rgba(201,168,76,0.7);line-height:1.4;
+}
+.quiz-next-btn{
+  display:block;width:100%;margin-top:10px;
+  background:var(--gold);color:#1a1209;
+  border:none;border-radius:8px;padding:12px;
+  font-family:Georgia,serif;font-size:14px;font-weight:bold;cursor:pointer;
+}
+.quiz-restart-btn{
+  display:block;width:100%;margin-top:10px;
+  background:transparent;color:var(--gold);
+  border:1px solid rgba(201,168,76,0.4);border-radius:8px;padding:12px;
+  font-family:Georgia,serif;font-size:14px;cursor:pointer;
+}
+
+/* SETTINGS */
+#settings-panel{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:#1a1209;z-index:300;
+  transform:translateX(100%);transition:transform 0.3s ease;
+  display:flex;flex-direction:column;
+}
+#settings-panel.open{transform:translateX(0);}
+.settings-header{
+  padding-top:calc(14px + env(safe-area-inset-top));
+  padding-bottom:10px;padding-left:16px;padding-right:16px;
+  background:#1a1209;flex-shrink:0;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(201,168,76,0.25);
+}
+.settings-body{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(20px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;}
+.settings-title{font-family:Georgia,serif;font-size:15px;color:var(--gold);}
+.apps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px;}
+.apps-grid-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.apps-grid-item img{width:56px;height:56px;border-radius:13px;object-fit:cover;}
+.apps-grid-item span{font-size:9px;color:rgba(201,168,76,0.6);font-family:Georgia,serif;text-align:center;line-height:1.2;}
+.apps-badge{display:block;margin:16px auto 0;height:36px;}
+.settings-section-title{font-family:Georgia,serif;font-size:11px;color:rgba(201,168,76,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div>
+      <div class="header-title">🌐 Institutions Mondiales</div>
+      <div class="header-sub" id="h-sub">17 organisations internationales</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="lang-btn" id="langBtn" onclick="toggleLang()">🇬🇧</button>
+      <button class="lang-btn" onclick="openSettings()" style="font-size:16px;">📱</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-list" onclick="showTab('list')">
+      <span class="tab-icon">📋</span><span id="tab-list-lbl">Fiches</span>
+    </button>
+    <button class="tab" id="tab-map" onclick="showTab('map')">
+      <span class="tab-icon">🗺️</span><span id="tab-map-lbl">Carte</span>
+    </button>
+    <button class="tab" id="tab-quiz" onclick="showTab('quiz')">
+      <span class="tab-icon">🎯</span><span id="tab-quiz-lbl">Quiz</span>
+    </button>
+  </div>
+
+  <div class="main">
+    <div id="map-view">
+      <div id="map"></div>
+    </div>
+    <div id="list-view" style="display:none;"></div>
+    <div id="quiz-view" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div id="detail-panel">
+  <div class="detail-header">
+    <button class="back-btn" onclick="closeDetail()">‹</button>
+    <div class="detail-header-title" id="detail-htitle"></div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel">
+  <div class="settings-header">
+    <button class="back-btn" onclick="closeSettings()">‹</button>
+    <div class="settings-title">Mes Applications</div>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section-title">Catalogue complet</div>
+    <div class="apps-grid" id="apps-grid"></div>
+    <img class="apps-badge" src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/fr-fr" alt="App Store">
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const INSTITUTIONS = [
+  {
+    id:1, abbr:"OIT/ILO",
+    emoji:"⚖️",
+    wiki:"wt:International_Labour_Organization",
+    lat:46.2382, lng:6.1236,
+    city:{fr:"Genève, Suisse", en:"Geneva, Switzerland"},
+    founded:1919,
+    name:{
+      fr:"Organisation internationale du Travail",
+      en:"International Labour Organization"
+    },
+    desc:{
+      fr:"L'OIT est la seule agence tripartite de l'ONU réunissant gouvernements, employeurs et travailleurs. Fondée en 1919, elle élabore les normes internationales du travail, promeut le travail décent et la protection sociale dans le monde entier.",
+      en:"The ILO is the only tripartite UN agency uniting governments, employers and workers. Founded in 1919, it sets international labour standards, promotes decent work and social protection worldwide."
+    },
+    members:187, hq:{fr:"Genève", en:"Geneva"}
+  },
+  {
+    id:2, abbr:"FAO",
+    emoji:"🌾",
+    wiki:"wt:Food_and_Agriculture_Organization",
+    lat:41.8816, lng:12.4993,
+    city:{fr:"Rome, Italie", en:"Rome, Italy"},
+    founded:1945,
+    name:{
+      fr:"Organisation des Nations Unies pour l'alimentation et l'agriculture",
+      en:"Food and Agriculture Organization"
+    },
+    desc:{
+      fr:"La FAO dirige les efforts internationaux pour lutter contre la faim dans le monde. Elle aide les pays à moderniser et améliorer leurs pratiques agricoles, forestières et halieutiques pour assurer une bonne nutrition pour tous.",
+      en:"The FAO leads international efforts to defeat hunger. It helps countries modernize and improve agriculture, forestry and fisheries practices to ensure good nutrition for all people."
+    },
+    members:194, hq:{fr:"Rome", en:"Rome"}
+  },
+  {
+    id:3, abbr:"UNESCO",
+    emoji:"🎨",
+    wiki:"wt:UNESCO",
+    lat:48.8685, lng:2.3074,
+    city:{fr:"Paris, France", en:"Paris, France"},
+    founded:1945,
+    name:{
+      fr:"Organisation des Nations Unies pour l'éducation, la science et la culture",
+      en:"United Nations Educational, Scientific and Cultural Organization"
+    },
+    desc:{
+      fr:"L'UNESCO œuvre pour la paix et la sécurité en promouvant la coopération internationale en éducation, science, culture et communication. Elle gère le patrimoine mondial et soutient la liberté de la presse et l'égalité des genres.",
+      en:"UNESCO works for peace and security by promoting international cooperation in education, science, culture and communication. It manages World Heritage Sites and supports press freedom and gender equality."
+    },
+    members:194, hq:{fr:"Paris", en:"Paris"}
+  },
+  {
+    id:4, abbr:"OMS/WHO",
+    emoji:"🏥",
+    wiki:"wt:World_Health_Organization",
+    lat:46.2323, lng:6.1450,
+    city:{fr:"Genève, Suisse", en:"Geneva, Switzerland"},
+    founded:1948,
+    name:{
+      fr:"Organisation mondiale de la Santé",
+      en:"World Health Organization"
+    },
+    desc:{
+      fr:"L'OMS est l'autorité sanitaire mondiale au sein du système des Nations Unies. Elle coordonne la lutte contre les épidémies, établit les normes sanitaires mondiales et soutient les pays dans le renforcement de leurs systèmes de santé.",
+      en:"The WHO is the world's leading health authority within the UN system. It coordinates responses to epidemics, sets global health standards and supports countries in strengthening their health systems."
+    },
+    members:194, hq:{fr:"Genève", en:"Geneva"}
+  },
+  {
+    id:5, abbr:"Banque Mondiale",
+    emoji:"🏦",
+    wiki:"wt:World_Bank_Group",
+    lat:38.8996, lng:-77.0422,
+    city:{fr:"Washington D.C., États-Unis", en:"Washington D.C., USA"},
+    founded:1944,
+    name:{
+      fr:"Banque mondiale",
+      en:"World Bank"
+    },
+    desc:{
+      fr:"La Banque mondiale est une institution financière internationale qui fournit des prêts et des subventions aux pays en développement. Son objectif principal est de réduire la pauvreté et de financer des projets d'infrastructure et de développement.",
+      en:"The World Bank is an international financial institution providing loans and grants to developing countries. Its primary goal is to reduce poverty and finance infrastructure and development projects."
+    },
+    members:189, hq:{fr:"Washington D.C.", en:"Washington D.C."}
+  },
+  {
+    id:6, abbr:"FMI/IMF",
+    emoji:"💰",
+    wiki:"wt:International_Monetary_Fund",
+    lat:38.8992, lng:-77.0429,
+    city:{fr:"Washington D.C., États-Unis", en:"Washington D.C., USA"},
+    founded:1945,
+    name:{
+      fr:"Fonds monétaire international",
+      en:"International Monetary Fund"
+    },
+    desc:{
+      fr:"Le FMI favorise la stabilité financière mondiale et la croissance économique internationale. Il soutient les pays en difficulté, surveille les économies mondiales et fournit des analyses économiques.",
+      en:"The IMF promotes global financial stability and international economic growth. It supports countries in difficulty, monitors world economies and provides economic analysis."
+    },
+    members:190, hq:{fr:"Washington D.C.", en:"Washington D.C."}
+  },
+  {
+    id:7, abbr:"UIT/ITU",
+    emoji:"📡",
+    wiki:"wt:International_Telecommunication_Union",
+    lat:46.2254, lng:6.1388,
+    city:{fr:"Genève, Suisse", en:"Geneva, Switzerland"},
+    founded:1865,
+    name:{
+      fr:"Union internationale des télécommunications",
+      en:"International Telecommunication Union"
+    },
+    desc:{
+      fr:"L'UIT est l'agence spécialisée des Nations Unies pour les technologies de l'information et de la communication. Elle coordonne l'utilisation du spectre radioélectrique mondial, favorise la coopération internationale en télécommunications.",
+      en:"The ITU is the UN's specialized agency for information and communication technologies. It coordinates global use of the radio spectrum and promotes international cooperation in telecommunications."
+    },
+    members:193, hq:{fr:"Genève", en:"Geneva"}
+  },
+  {
+    id:8, abbr:"OMM/WMO",
+    emoji:"🌤️",
+    wiki:"wt:World_Meteorological_Organization",
+    lat:46.2254, lng:6.1350,
+    city:{fr:"Genève, Suisse", en:"Geneva, Switzerland"},
+    founded:1950,
+    name:{
+      fr:"Organisation météorologique mondiale",
+      en:"World Meteorological Organization"
+    },
+    desc:{
+      fr:"L'OMM est l'autorité des Nations Unies pour la météorologie, la climatologie et l'hydrologie. Elle coordonne les réseaux d'observation mondiaux, facilite l'échange de données météorologiques et alerte sur les risques climatiques.",
+      en:"The WMO is the UN's authority for meteorology, climatology and hydrology. It coordinates global observation networks, facilitates the exchange of meteorological data and warns about climate risks."
+    },
+    members:193, hq:{fr:"Genève", en:"Geneva"}
+  },
+  {
+    id:9, abbr:"OMPI/WIPO",
+    emoji:"💡",
+    wiki:"wt:World_Intellectual_Property_Organization",
+    lat:46.2254, lng:6.1322,
+    city:{fr:"Genève, Suisse", en:"Geneva, Switzerland"},
+    founded:1967,
+    name:{
+      fr:"Organisation mondiale de la propriété intellectuelle",
+      en:"World Intellectual Property Organization"
+    },
+    desc:{
+      fr:"L'OMPI est le forum mondial pour les services, la politique, l'information et la coopération en matière de propriété intellectuelle. Elle gère les traités internationaux sur les brevets, les marques et les droits d'auteur.",
+      en:"WIPO is the global forum for intellectual property services, policy, information and cooperation. It administers international treaties on patents, trademarks and copyrights."
+    },
+    members:193, hq:{fr:"Genève", en:"Geneva"}
+  },
+  {
+    id:10, abbr:"FIDA/IFAD",
+    emoji:"🌱",
+    wiki:"wt:International_Fund_for_Agricultural_Development",
+    lat:41.8930, lng:12.4944,
+    city:{fr:"Rome, Italie", en:"Rome, Italy"},
+    founded:1977,
+    name:{
+      fr:"Fonds international de développement agricole",
+      en:"International Fund for Agricultural Development"
+    },
+    desc:{
+      fr:"Le FIDA finance des projets agricoles dans les pays en développement pour lutter contre la pauvreté rurale. Il cible les petits agriculteurs et les communautés rurales marginalisées pour améliorer leur sécurité alimentaire.",
+      en:"IFAD finances agricultural projects in developing countries to combat rural poverty. It targets small farmers and marginalized rural communities to improve their food security."
+    },
+    members:177, hq:{fr:"Rome", en:"Rome"}
+  },
+  {
+    id:11, abbr:"ONUDI/UNIDO",
+    emoji:"🏭",
+    wiki:"wt:United_Nations_Industrial_Development_Organization",
+    lat:48.2206, lng:16.3667,
+    city:{fr:"Vienne, Autriche", en:"Vienna, Austria"},
+    founded:1966,
+    name:{
+      fr:"Organisation des Nations Unies pour le développement industriel",
+      en:"United Nations Industrial Development Organization"
+    },
+    desc:{
+      fr:"L'ONUDI promeut le développement industriel dans les pays en développement et en transition. Elle aide à créer une croissance industrielle prospère et durable pour réduire la pauvreté.",
+      en:"UNIDO promotes industrial development in developing and transition economies. It helps create thriving and sustainable industrial growth to reduce poverty."
+    },
+    members:170, hq:{fr:"Vienne", en:"Vienna"}
+  },
+  {
+    id:12, abbr:"OMT/UNWTO",
+    emoji:"✈️",
+    wiki:"wt:World_Tourism_Organization",
+    lat:40.4519, lng:-3.6914,
+    city:{fr:"Madrid, Espagne", en:"Madrid, Spain"},
+    founded:1974,
+    name:{
+      fr:"Organisation mondiale du tourisme",
+      en:"World Tourism Organization"
+    },
+    desc:{
+      fr:"L'OMT est l'agence onusienne responsable de la promotion du tourisme responsable, durable et universellement accessible. Elle promeut le tourisme comme moteur de développement économique et d'échange interculturel.",
+      en:"UNWTO is the UN agency responsible for promoting responsible, sustainable and universally accessible tourism. It promotes tourism as a driver of economic development and intercultural exchange."
+    },
+    members:159, hq:{fr:"Madrid", en:"Madrid"}
+  },
+  {
+    id:13, abbr:"AIEA/IAEA",
+    emoji:"⚛️",
+    wiki:"wt:International_Atomic_Energy_Agency",
+    lat:48.2350, lng:16.3990,
+    city:{fr:"Vienne, Autriche", en:"Vienna, Austria"},
+    founded:1957,
+    name:{
+      fr:"Agence internationale de l'énergie atomique",
+      en:"International Atomic Energy Agency"
+    },
+    desc:{
+      fr:"L'AIEA est le centre mondial de coopération dans le domaine nucléaire. Elle œuvre pour un usage sûr, sécurisé et pacifique de l'énergie nucléaire et surveille les programmes nucléaires à travers le monde.",
+      en:"The IAEA is the world's centre for cooperation in the nuclear field. It works for the safe, secure and peaceful use of nuclear energy and monitors nuclear programs worldwide."
+    },
+    members:178, hq:{fr:"Vienne", en:"Vienna"}
+  },
+  {
+    id:14, abbr:"CPI/ICC",
+    emoji:"⚖️",
+    wiki:"wt:International_Criminal_Court",
+    lat:52.0883, lng:4.3449,
+    city:{fr:"La Haye, Pays-Bas", en:"The Hague, Netherlands"},
+    founded:2002,
+    name:{
+      fr:"Cour pénale internationale",
+      en:"International Criminal Court"
+    },
+    desc:{
+      fr:"La CPI est la première cour pénale internationale permanente. Elle juge les individus accusés de génocide, crimes contre l'humanité, crimes de guerre et crimes d'agression, complémentant les juridictions nationales.",
+      en:"The ICC is the first permanent international criminal court. It tries individuals accused of genocide, crimes against humanity, war crimes and crimes of aggression, complementing national jurisdictions."
+    },
+    members:124, hq:{fr:"La Haye", en:"The Hague"}
+  },
+  {
+    id:15, abbr:"AIFM/ISA",
+    emoji:"🌊",
+    wiki:"wt:International_Seabed_Authority",
+    lat:17.9970, lng:-76.7936,
+    city:{fr:"Kingston, Jamaïque", en:"Kingston, Jamaica"},
+    founded:1994,
+    name:{
+      fr:"Autorité internationale des fonds marins",
+      en:"International Seabed Authority"
+    },
+    desc:{
+      fr:"L'AIFM organise, réglemente et contrôle toutes les activités minières dans les fonds marins internationaux au-delà des juridictions nationales, en protégeant le milieu marin.",
+      en:"The ISA organizes, regulates and controls all mining activities in international seabed areas beyond national jurisdiction, while protecting the marine environment."
+    },
+    members:168, hq:{fr:"Kingston", en:"Kingston"}
+  },
+  {
+    id:16, abbr:"TIDM/ITLOS",
+    emoji:"🔱",
+    wiki:"wt:International_Tribunal_for_the_Law_of_the_Sea",
+    lat:53.5456, lng:9.9986,
+    city:{fr:"Hambourg, Allemagne", en:"Hamburg, Germany"},
+    founded:1996,
+    name:{
+      fr:"Tribunal international du droit de la mer",
+      en:"International Tribunal for the Law of the Sea"
+    },
+    desc:{
+      fr:"Le TIDM est un tribunal international compétent pour tout différend relatif à l'interprétation ou à l'application de la Convention des Nations Unies sur le droit de la mer.",
+      en:"ITLOS is an international tribunal with jurisdiction over any dispute concerning the interpretation or application of the UN Convention on the Law of the Sea."
+    },
+    members:21, hq:{fr:"Hambourg", en:"Hamburg"}
+  },
+  {
+    id:17, abbr:"OIM/IOM",
+    emoji:"🧭",
+    wiki:"wt:International_Organization_for_Migration",
+    lat:46.2177, lng:6.1460,
+    city:{fr:"Genève, Suisse", en:"Geneva, Switzerland"},
+    founded:1951,
+    name:{
+      fr:"Organisation internationale pour les migrations",
+      en:"International Organization for Migration"
+    },
+    desc:{
+      fr:"L'OIM est la principale organisation intergouvernementale dans le domaine des migrations. Elle promeut une migration humaine et ordonnée, aide les migrants en détresse et travaille à la compréhension des questions migratoires.",
+      en:"The IOM is the leading intergovernmental organization in the field of migration. It promotes humane and orderly migration, assists migrants in distress and works to understand migration issues."
+    },
+    members:175, hq:{fr:"Genève", en:"Geneva"}
+  }
+];
+
+// ─── CATALOG APPS ────────────────────────────────────────────────────────────
+const CATALOG = [
+  {id:"6763507194",name:"Hotels RoofTop"},{id:"6762618424",name:"Ponts du Monde"},
+  {id:"6763076110",name:"Paquebots"},{id:"6763069304",name:"Avions de Légende"},
+  {id:"6763071567",name:"Voitures Légende"},{id:"6762077646",name:"Flip Board"},
+  {id:"6762632868",name:"Trains Mytiques"},{id:"6762823383",name:"Châteaux Loire"},
+  {id:"6762598304",name:"Mers & Océans"},{id:"6762594201",name:"Détroits"},
+  {id:"6762558969",name:"ColorCodeMind"},{id:"6762552826",name:"Lexigo"},
+  {id:"6762542395",name:"Conquêtes Sociales"},{id:"6762522136",name:"Dynasties Chinoises"},
+  {id:"6762452564",name:"Dynasties Russes"},{id:"6762370541",name:"États-Unis"},
+  {id:"6762091681",name:"Bataille Navale"},{id:"6762098486",name:"Familles Royales"},
+  {id:"6762263227",name:"Leaders Européens"},{id:"6762346365",name:"Pays UE"},
+  {id:"6762256169",name:"Présidents US"},{id:"6762076518",name:"Dames Checkers"},
+  {id:"6761993002",name:"Comédie Française"},{id:"6761769529",name:"Institut de France"},
+  {id:"6761324444",name:"Présidents FR"},{id:"6761709149",name:"Basilique St-Denis"},
+  {id:"6761685637",name:"Arbres de France"},{id:"6761363063",name:"Sénat Paris"},
+  {id:"6761656628",name:"Compositeurs"},{id:"6761374601",name:"Maréchaux Napoléon"},
+  {id:"6761322546",name:"Rois de France"},{id:"6761361079",name:"Assemblée Paris"},
+  {id:"6761335268",name:"Panthéon Paris"},{id:"1483084001",name:"Belote Calc"},
+  {id:"6760751055",name:"Cimetières Paris"},{id:"1481989301",name:"Tarots Calc"},
+  {id:"6761334922",name:"Académie française"},{id:"6761293938",name:"Scènes Paris"},
+  {id:"6761271324",name:"MediSafe"},{id:"6760617965",name:"MesRestaurants"},
+  {id:"6760126279",name:"Cave Manager"},{id:"6760890465",name:"Musées Paris"},
+  {id:"6760929391",name:"Théâtres Paris"},{id:"6759219383",name:"Frigo Manager"},
+  {id:"1475884625",name:"Toi ou Moi"},{id:"6761421276",name:"Capitales Europe"},
+  {id:"6762006105",name:"Iconic Covers"}
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let lang = 'fr';
+let currentTab = 'map';
+let map = null;
+let quizQuestions = [];
+let quizIdx = 0;
+let quizScore = 0;
+let quizAnswered = false;
+const photoCache = {};
+
+// ─── LANG ────────────────────────────────────────────────────────────────────
+function toggleLang(){
+  lang = lang==='fr'?'en':'fr';
+  document.getElementById('langBtn').textContent = lang==='fr'?'🇬🇧':'🇫🇷';
+  refreshUI();
+}
+function t(obj){ return obj[lang]||obj['fr']; }
+
+function refreshUI(){
+  document.getElementById('tab-map-lbl').textContent = lang==='fr'?'Carte':'Map';
+  document.getElementById('tab-list-lbl').textContent = lang==='fr'?'Fiches':'Cards';
+  document.getElementById('tab-quiz-lbl').textContent = 'Quiz';
+  document.getElementById('h-sub').textContent = lang==='fr'?'17 organisations internationales':'17 international organizations';
+  if(currentTab==='list') renderList();
+  if(currentTab==='quiz') renderQuiz();
+  if(currentTab==='map') updateMapPopups();
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function showTab(tab){
+  currentTab = tab;
+  ['map','list','quiz'].forEach(t=>{
+    document.getElementById(t+'-view').style.display = t===tab?'flex':'none';
+    if(t==='list'||t==='quiz') document.getElementById(t+'-view').style.display = t===tab?'block':'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  if(tab==='map'){ initMap(); }
+  if(tab==='list'){ renderList(); }
+  if(tab==='quiz'){ renderQuiz(); }
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────────
+const markers = {};
+function initMap(){
+  if(map){ updateMapPopups(); return; }
+  map = L.map('map',{zoomControl:false}).setView([20, 10], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:18
+  }).addTo(map);
+  INSTITUTIONS.forEach(inst=>{
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="font-size:22px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">${inst.emoji}</div>`,
+      iconSize:[28,28], iconAnchor:[14,14], popupAnchor:[0,-14]
+    });
+    const m = L.marker([inst.lat, inst.lng],{icon}).addTo(map);
+    m.bindPopup(makePopupHTML(inst));
+    m.on('popupopen',()=>{
+      const btn = document.getElementById('popup-btn-'+inst.id);
+      if(btn) btn.onclick = ()=>{ m.closePopup(); openDetail(inst); };
+    });
+    markers[inst.id] = m;
+  });
+}
+function makePopupHTML(inst){
+  return `<div class="popup-name">${inst.abbr}</div>
+    <div class="popup-city">${t(inst.city)}</div>
+    <button class="popup-btn" id="popup-btn-${inst.id}">${lang==='fr'?'Voir la fiche':'See card'}</button>`;
+}
+function updateMapPopups(){
+  if(!map) return;
+  INSTITUTIONS.forEach(inst=>{
+    if(markers[inst.id]) markers[inst.id].setPopupContent(makePopupHTML(inst));
+  });
+}
+
+// ─── LIST ─────────────────────────────────────────────────────────────────────
+function renderList(){
+  const el = document.getElementById('list-view');
+  el.innerHTML = INSTITUTIONS.map(inst=>`
+    <div class="inst-item" onclick="openDetail(INSTITUTIONS[${inst.id-1}])">
+      <div class="inst-logo-placeholder" id="logo-${inst.id}">${inst.emoji}</div>
+      <div class="inst-info">
+        <div class="inst-abbr">${inst.abbr}</div>
+        <div class="inst-name">${t(inst.name)}</div>
+        <div class="inst-city">📍 ${t(inst.city)} · ${lang==='fr'?'fondée en':'founded'} ${inst.founded}</div>
+      </div>
+      <div class="inst-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+// ─── DETAIL ───────────────────────────────────────────────────────────────────
+function openDetail(inst){
+  document.getElementById('detail-htitle').textContent = inst.abbr;
+  const body = document.getElementById('detail-body');
+
+  const heroId = 'detail-hero-img';
+  body.innerHTML = `
+    <div class="detail-hero-placeholder" id="hero-placeholder-${inst.id}">${inst.emoji}</div>
+    <div class="detail-section">
+      <div class="detail-abbr">${inst.abbr}</div>
+      <div class="detail-fullname">${t(inst.name)}</div>
+      <div class="detail-meta">
+        <span class="meta-tag">📍 ${t(inst.hq)}</span>
+        <span class="meta-tag">🗓 ${lang==='fr'?'Fondée en':'Founded'} ${inst.founded}</span>
+        <span class="meta-tag">🌍 ${inst.members} ${lang==='fr'?'États membres':'member states'}</span>
+      </div>
+      <div class="detail-label">${lang==='fr'?'À propos':'About'}</div>
+      <div class="detail-desc">${t(inst.desc)}</div>
+      <div class="detail-divider"></div>
+      <div class="detail-label">${lang==='fr'?'Siège':'Headquarters'}</div>
+      <div class="detail-desc">📍 ${t(inst.city)}</div>
+    </div>
+  `;
+  document.getElementById('detail-panel').classList.add('open');
+  loadWikiPhoto(inst);
+}
+
+function closeDetail(){
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+async function loadWikiPhoto(inst){
+  if(photoCache[inst.id]){ setDetailHero(inst, photoCache[inst.id]); return; }
+  if(!inst.wiki) return;
+  try{
+    const cap = window.Capacitor;
+    const useCapacitor = cap && cap.Plugins && cap.Plugins.CapacitorHttp;
+
+    // Résoudre le titre/fichier
+    let apiUrl = null;
+    if(inst.wiki.startsWith('wf:')){
+      const filename = inst.wiki.slice(3);
+      apiUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles=File:'+encodeURIComponent(filename)+'&prop=pageimages&pithumbsize=600&format=json&origin=*';
+    } else {
+      const title = inst.wiki.startsWith('wt:') ? inst.wiki.slice(3) : inst.wiki;
+      apiUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&pithumbsize=600&format=json&origin=*';
+    }
+
+    let thumbUrl = null;
+    if(useCapacitor){
+      const {CapacitorHttp} = cap.Plugins;
+      const r1 = await CapacitorHttp.get({url:apiUrl, headers:{'Content-Type':'application/json'}});
+      const pg = Object.values(JSON.parse(r1.data).query.pages)[0];
+      if(!pg||!pg.thumbnail) return;
+      thumbUrl = pg.thumbnail.source;
+      const r2 = await CapacitorHttp.get({url:thumbUrl, responseType:'arraybuffer'});
+      const b64 = 'data:image/jpeg;base64,'+r2.data;
+      photoCache[inst.id] = b64;
+      setDetailHero(inst, b64);
+    } else {
+      // Fallback navigateur : fetch + URL directe (CORS ok sur Wikipedia API)
+      const r1 = await fetch(apiUrl);
+      const json = await r1.json();
+      const pg = Object.values(json.query.pages)[0];
+      if(!pg||!pg.thumbnail) return;
+      thumbUrl = pg.thumbnail.source;
+      // En navigateur on affiche l'URL directement (pas de conversion base64 nécessaire)
+      photoCache[inst.id] = thumbUrl;
+      setDetailHero(inst, thumbUrl);
+    }
+  }catch(e){ console.log('photo error', e); }
+}
+
+function setDetailHero(inst, src){
+  const ph = document.getElementById('hero-placeholder-'+inst.id);
+  if(!ph) return;
+  const wrap = document.createElement('div');
+  wrap.className='detail-hero-wrap';
+  const img = document.createElement('img');
+  img.className='detail-hero';
+  img.src=src;
+  img.onerror=()=>{};
+  wrap.appendChild(img);
+  ph.parentNode.replaceChild(wrap, ph);
+}
+
+// ─── QUIZ ────────────────────────────────────────────────────────────────────
+function buildQuizQuestions(){
+  const all = [];
+  INSTITUTIONS.forEach(inst=>{
+    // Q1: Où se trouve le siège ?
+    const wrongCities = INSTITUTIONS.filter(i=>i.id!==inst.id).map(i=>t(i.hq));
+    const shuffled = wrongCities.sort(()=>Math.random()-0.5).slice(0,3);
+    const opts1 = [t(inst.hq),...shuffled].sort(()=>Math.random()-0.5);
+    all.push({
+      q:{fr:`Où se situe le siège de ${inst.abbr} ?`, en:`Where is the headquarters of ${inst.abbr}?`},
+      opts:opts1,
+      answer:t(inst.hq),
+      feedback:{fr:`Le siège de ${inst.abbr} est à ${t(inst.city)}.`,en:`${inst.abbr} is headquartered in ${t(inst.city)}.`}
+    });
+    // Q2: En quelle année fondée ?
+    const wrongYears = [inst.founded-10, inst.founded+5, inst.founded-5].filter(y=>y>1800&&y!==inst.founded);
+    const optsY = [String(inst.founded),...wrongYears.slice(0,3).map(String)].sort(()=>Math.random()-0.5);
+    all.push({
+      q:{fr:`En quelle année ${inst.abbr} a-t-elle été fondée ?`, en:`In what year was ${inst.abbr} founded?`},
+      opts:optsY,
+      answer:String(inst.founded),
+      feedback:{fr:`${inst.abbr} a été fondée en ${inst.founded}.`,en:`${inst.abbr} was founded in ${inst.founded}.`}
+    });
+    // Q3: Quel est l'acronyme ?
+    const wrongAbbrs = INSTITUTIONS.filter(i=>i.id!==inst.id).map(i=>i.abbr).sort(()=>Math.random()-0.5).slice(0,3);
+    const optsA = [inst.abbr,...wrongAbbrs].sort(()=>Math.random()-0.5);
+    const shortName = t(inst.name).split(' ').slice(0,5).join(' ')+'…';
+    all.push({
+      q:{fr:`Quel est le sigle de : ${shortName}`, en:`What is the acronym for: ${shortName}`},
+      opts:optsA,
+      answer:inst.abbr,
+      feedback:{fr:`C'est bien ${inst.abbr} – ${t(inst.name)}.`,en:`It is ${inst.abbr} – ${t(inst.name)}.`}
+    });
+  });
+  return all.sort(()=>Math.random()-0.5).slice(0,20);
+}
+
+function renderQuiz(){
+  if(quizQuestions.length===0) startQuiz();
+  const el = document.getElementById('quiz-view');
+  const total = quizQuestions.length;
+  if(quizIdx>=total){
+    el.innerHTML=`
+      <div class="quiz-header">
+        <div class="quiz-score-label">${lang==='fr'?'Score final':'Final score'}</div>
+        <div class="quiz-score">${quizScore}/${total}</div>
+        <div style="font-size:32px;margin-top:8px;">${quizScore>=total*0.8?'🏆':quizScore>=total*0.5?'👍':'📚'}</div>
+      </div>
+      <button class="quiz-next-btn" onclick="startQuiz()">${lang==='fr'?'Rejouer':'Play again'}</button>
+    `;
+    return;
+  }
+  const q = quizQuestions[quizIdx];
+  el.innerHTML=`
+    <div class="quiz-header">
+      <div class="quiz-score-label">${lang==='fr'?'Score':'Score'}</div>
+      <div class="quiz-score">${quizScore}/${quizIdx}</div>
+    </div>
+    <div class="quiz-progress"><div class="quiz-progress-bar" style="width:${(quizIdx/total)*100}%"></div></div>
+    <div class="quiz-card">
+      <div class="quiz-q">${t(q.q)}</div>
+      ${q.opts.map((o,i)=>`<button class="quiz-opt" id="qopt-${i}" onclick="answerQuiz('${o.replace(/'/g,"\\'")}',${i})">${o}</button>`).join('')}
+      <div class="quiz-feedback" id="quiz-fb" style="display:none;"></div>
+      <button class="quiz-next-btn" id="quiz-next" style="display:none;" onclick="nextQuizQ()">${lang==='fr'?'Question suivante':'Next question'} →</button>
+    </div>
+  `;
+}
+
+function startQuiz(){
+  quizQuestions = buildQuizQuestions();
+  quizIdx=0; quizScore=0; quizAnswered=false;
+  renderQuiz();
+}
+
+function answerQuiz(chosen, idx){
+  if(quizAnswered) return;
+  quizAnswered=true;
+  const q = quizQuestions[quizIdx];
+  const correct = chosen===q.answer;
+  if(correct) quizScore++;
+  q.opts.forEach((o,i)=>{
+    const btn=document.getElementById('qopt-'+i);
+    if(!btn) return;
+    if(o===q.answer) btn.classList.add('correct');
+    else if(i===idx&&!correct) btn.classList.add('wrong');
+    btn.disabled=true;
+  });
+  const fb=document.getElementById('quiz-fb');
+  if(fb){fb.textContent=t(q.feedback);fb.style.display='block';}
+  const nx=document.getElementById('quiz-next');
+  if(nx) nx.style.display='block';
+}
+
+function nextQuizQ(){
+  quizIdx++;
+  quizAnswered=false;
+  renderQuiz();
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('settings-panel').classList.add('open');
+  renderSettingsApps();
+}
+function closeSettings(){
+  document.getElementById('settings-panel').classList.remove('open');
+}
+function renderSettingsApps(){
+  const grid = document.getElementById('apps-grid');
+  if(grid.childElementCount>0) return;
+  CATALOG.forEach(app=>{
+    const item = document.createElement('div');
+    item.className='apps-grid-item';
+    item.innerHTML=`<img id="appicon-${app.id}" src="" alt="${app.name}"><span>${app.name}</span>`;
+    grid.appendChild(item);
+    const numId = app.id.replace('id','');
+    const cbName = 'itcb'+numId;
+    window[cbName] = function(d){
+      const img = document.getElementById('appicon-'+app.id);
+      if(img&&d.results&&d.results[0]) img.src=d.results[0].artworkUrl60;
+    };
+    const s = document.createElement('script');
+    s.src=`https://itunes.apple.com/lookup?id=${numId}&callback=${cbName}`;
+    document.body.appendChild(s);
+  });
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  showTab('list');
+});
+</script>
+</body>
+</html>
